@@ -1,4 +1,4 @@
-CREATE TABLE public.summaries (
+CREATE TABLE IF NOT EXISTS public.summaries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
     video_id TEXT NOT NULL,
@@ -13,4 +13,4 @@ CREATE TABLE public.summaries (
     CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_summaries_user_id_created_at ON public.summaries(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_summaries_user_id_created_at ON public.summaries(user_id, created_at DESC);
