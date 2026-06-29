@@ -122,7 +122,6 @@ export default async function handler(req: Request, res: Response) {
 
     let summary = '';
     const FREE_MODELS = [
-      'openrouter/free',
       'meta-llama/llama-3.3-70b-instruct:free',
       'qwen/qwen-2.5-72b-instruct:free',
       'meta-llama/llama-3.2-3b-instruct:free'
