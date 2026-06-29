@@ -29,4 +29,5 @@ dist-ssr
 nhost/.secrets
 .env
 .env.*
+!.env.production
 
