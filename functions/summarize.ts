@@ -187,7 +187,13 @@ Format the output in clean markdown.`,
     }
 
     if (!summary) {
-      return res.status(502).json({ error: `All free models failed or were rate-limited. Last error: ${lastError}` });
+      const keyLength = openRouterKey.length;
+      const maskedKey = keyLength > 10 
+        ? `${openRouterKey.slice(0, 8)}...${openRouterKey.slice(-4)}` 
+        : 'Too short / Empty';
+      return res.status(502).json({ 
+        error: `All free models failed or were rate-limited. Last error: ${lastError} (Key debug: len=${keyLength}, mask=${maskedKey})` 
+      });
     }
 
     return res.status(200).json({
