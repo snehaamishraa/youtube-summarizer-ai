@@ -1,0 +1,83 @@
+table:
+  name: summaries
+  schema: public
+configuration:
+  column_config:
+    channel_title:
+      custom_name: channelTitle
+    created_at:
+      custom_name: createdAt
+    thumbnail_url:
+      custom_name: thumbnailUrl
+    video_id:
+      custom_name: videoId
+    video_title:
+      custom_name: videoTitle
+    video_url:
+      custom_name: videoUrl
+    user_id:
+      custom_name: userId
+  custom_column_names:
+    channel_title: channelTitle
+    created_at: createdAt
+    thumbnail_url: thumbnailUrl
+    video_id: videoId
+    video_title: videoTitle
+    video_url: videoUrl
+    user_id: userId
+
+  custom_root_fields:
+    delete: deleteSummaries
+    delete_by_pk: deleteSummary
+    insert: insertSummaries
+    insert_one: insertSummary
+    select: summaries
+    select_aggregate: summariesAggregate
+    select_by_pk: summary
+    update: updateSummaries
+    update_by_pk: updateSummary
+object_relationships:
+  - name: user
+    using:
+      foreign_key_constraint_on: user_id
+select_permissions:
+  - role: user
+    permission:
+      columns:
+        - id
+        - user_id
+        - video_id
+        - video_url
+        - video_title
+        - channel_title
+        - thumbnail_url
+        - duration
+        - summary
+        - transcript
+        - created_at
+      filter:
+        user_id:
+          _eq: X-Hasura-User-Id
+insert_permissions:
+  - role: user
+    permission:
+      check:
+        user_id:
+          _eq: X-Hasura-User-Id
+      set:
+        user_id: x-hasura-user-id
+      columns:
+        - video_id
+        - video_url
+        - video_title
+        - channel_title
+        - thumbnail_url
+        - duration
+        - summary
+        - transcript
+delete_permissions:
+  - role: user
+    permission:
+      filter:
+        user_id:
+          _eq: X-Hasura-User-Id
