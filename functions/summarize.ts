@@ -135,13 +135,12 @@ export default async function handler(req: Request, res: Response) {
 
     let summary = '';
     const FREE_MODELS = [
+      'meta-llama/llama-3.1-8b-instruct:free',
       'meta-llama/llama-3.3-70b-instruct:free',
       'qwen/qwen-2.5-72b-instruct:free',
       'google/gemma-2-9b-it:free',
       'meta-llama/llama-3.2-3b-instruct:free',
-      'mistralai/mistral-7b-instruct:free',
-      'openchat/openchat-7b:free',
-      'gryphe/mythomax-l2-13b:free'
+      'mistralai/mistral-7b-instruct:free'
     ];
 
     let lastError = '';
@@ -195,8 +194,9 @@ Format the output in clean markdown.`,
       const maskedKey = keyLength > 10 
         ? `${openRouterKey.slice(0, 8)}...${openRouterKey.slice(-4)}` 
         : 'Too short / Empty';
+      console.error(`AI Summary Generation Failed. Last Error: ${lastError} (Key debug: len=${keyLength}, mask=${maskedKey})`);
       return res.status(502).json({ 
-        error: `All free models failed or were rate-limited. Last error: ${lastError} (Key debug: len=${keyLength}, mask=${maskedKey})` 
+        error: 'The AI summarization service is temporarily busy or rate-limited. Please wait a moment and try again.' 
       });
     }
 
