@@ -9,6 +9,7 @@ import { INSERT_SUMMARY } from '../graphql/mutations';
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [modelName, setModelName] = useState('Meta Llama 3.1');
   const [result, setResult] = useState<{
     videoTitle: string;
     channelTitle: string;
@@ -35,6 +36,7 @@ export default function Home() {
         duration: number;
         summary: string;
         transcript?: string;
+        modelUsed?: string;
       }>('summarize', { url });
 
       if (fnError) {
@@ -46,6 +48,10 @@ export default function Home() {
       if (res?.data) {
         const data = res.data;
         
+        if (data.modelUsed) {
+          setModelName(data.modelUsed);
+        }
+
         // Helper to extract YouTube video ID from URL
         const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|^shorts\/)([^#\&\?]*).*/;
         const match = url.match(regExp);
@@ -84,7 +90,7 @@ export default function Home() {
     {
       icon: Zap,
       title: 'AI-Powered',
-      description: 'Llama 3.1 generates intelligent summaries with key takeaways',
+      description: `${modelName} generates intelligent summaries with key takeaways`,
       color: 'text-amber-400',
       bg: 'from-amber-500/10 to-orange-500/10',
       border: 'border-amber-500/15',
@@ -128,7 +134,7 @@ export default function Home() {
             className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-xs font-medium text-indigo-300 mb-6"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            Powered by Meta Llama 3.1
+            Powered by {modelName}
           </motion.div>
 
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight mb-4">

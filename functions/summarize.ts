@@ -134,18 +134,21 @@ export default async function handler(req: Request, res: Response) {
     }
 
     let summary = '';
+    let successfulModel = '';
     const FREE_MODELS = [
       'meta-llama/llama-3.1-8b-instruct:free',
+      'google/gemma-4-31b-it:free',
+      'google/gemma-4-26b-a4b-it:free',
       'meta-llama/llama-3.3-70b-instruct:free',
-      'qwen/qwen-2.5-72b-instruct:free',
-      'google/gemma-2-9b-it:free',
       'meta-llama/llama-3.2-3b-instruct:free',
-      'mistralai/mistral-7b-instruct:free'
+      'nousresearch/hermes-3-llama-3.1-405b:free'
     ];
 
     let lastError = '';
+    const errors: string[] = [];
     for (const model of FREE_MODELS) {
       try {
+        console.log(`Attempting to summarize using model: ${model}`);
         const aiResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -178,16 +181,24 @@ Format the output in clean markdown.`,
           const aiData = await aiResponse.json();
           summary = aiData.choices?.[0]?.message?.content || '';
           if (summary) {
+            successfulModel = model;
+            console.log(`Successfully generated summary using model: ${model}`);
             break; // Successfully got summary, exit loop
           }
         } else {
           const errorData = await aiResponse.text();
-          lastError = `Model ${model} failed: ${errorData || aiResponse.statusText}`;
+          const errStr = `Model ${model} failed (HTTP ${aiResponse.status}): ${errorData || aiResponse.statusText}`;
+          errors.push(errStr);
+          console.warn(errStr);
         }
       } catch (err: any) {
-        lastError = `Model ${model} request error: ${err.message}`;
+        const errStr = `Model ${model} request error: ${err.message}`;
+        errors.push(errStr);
+        console.error(errStr);
       }
     }
+
+    lastError = errors.join(' | ');
 
     if (!summary) {
       const keyLength = openRouterKey.length;
@@ -208,8 +219,20 @@ Format the output in clean markdown.`,
       duration,
       summary,
       transcript: truncatedTranscript,
+      modelUsed: getFriendlyModelName(successfulModel),
     });
   } catch (error: any) {
     return res.status(500).json({ error: error.message || 'An error occurred during video processing.' });
   }
+}
+
+function getFriendlyModelName(modelSlug: string): string {
+  if (modelSlug.includes('llama-3.1')) return 'Meta Llama 3.1';
+  if (modelSlug.includes('llama-3.3')) return 'Meta Llama 3.3';
+  if (modelSlug.includes('llama-3.2')) return 'Meta Llama 3.2';
+  if (modelSlug.includes('gemma-4')) return 'Google Gemma 4';
+  if (modelSlug.includes('qwen3-coder')) return 'Qwen 3 Coder';
+  if (modelSlug.includes('gemma-2')) return 'Google Gemma 2';
+  if (modelSlug.includes('mistral')) return 'Mistral 7B';
+  return 'AI Assistant';
 }
