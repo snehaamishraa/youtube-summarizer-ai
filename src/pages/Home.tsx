@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Zap, Shield, Clock } from 'lucide-react';
 import Summarizer from '../components/Summarizer';
+import { useMutation } from '@apollo/client';
+import { useNhostClient } from '@nhost/react';
+import { INSERT_SUMMARY } from '../graphql/mutations';
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
@@ -14,18 +17,64 @@ export default function Home() {
     summary: string;
   } | null>(null);
 
+  const nhost = useNhostClient();
+  const [insertSummary] = useMutation(INSERT_SUMMARY, {
+    refetchQueries: ['GetSummaries'],
+  });
+
   const handleSummarize = async (url: string) => {
     setError(null);
     setResult(null);
     setIsLoading(true);
 
     try {
-      // TODO: Milestone 8+ will connect this to the Nhost function
-      // For now, simulate a brief loading state then show a placeholder message
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      setError('Summarizer function not yet connected. This will be implemented in Milestone 8.');
-    } catch {
-      setError('An unexpected error occurred. Please try again.');
+      const { res, error: fnError } = await nhost.functions.call<{
+        videoTitle: string;
+        channelTitle: string;
+        thumbnailUrl: string;
+        duration: number;
+        summary: string;
+        transcript?: string;
+      }>('summarize', { url });
+
+      if (fnError) {
+        const errMsg = fnError.message?.error || fnError.message || 'Failed to generate summary.';
+        setError(typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg));
+        return;
+      }
+
+      if (res?.data) {
+        const data = res.data;
+        
+        // Helper to extract YouTube video ID from URL
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|^shorts\/)([^#\&\?]*).*/;
+        const match = url.match(regExp);
+        const videoId = match && match[2].length === 11 ? match[2] : 'unknown';
+
+        // Save to PostgreSQL via GraphQL Mutation
+        await insertSummary({
+          variables: {
+            videoId,
+            videoUrl: url,
+            videoTitle: data.videoTitle,
+            channelTitle: data.channelTitle,
+            thumbnailUrl: data.thumbnailUrl,
+            duration: data.duration,
+            summary: data.summary,
+            transcript: data.transcript || '',
+          },
+        });
+
+        setResult({
+          videoTitle: data.videoTitle,
+          channelTitle: data.channelTitle,
+          thumbnailUrl: data.thumbnailUrl,
+          duration: data.duration,
+          summary: data.summary,
+        });
+      }
+    } catch (err: any) {
+      setError(err.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }

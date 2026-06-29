@@ -1,57 +1,41 @@
 import { motion } from 'framer-motion';
-import { History as HistoryIcon, FileText, Search, Inbox } from 'lucide-react';
+import { History as HistoryIcon, Search, Inbox, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import SummaryCard from '../components/SummaryCard';
+import { useQuery, useMutation } from '@apollo/client';
+import { GET_SUMMARIES } from '../graphql/queries';
+import { DELETE_SUMMARY } from '../graphql/mutations';
 
-// Placeholder data for UI development (Milestone 7 — no backend)
-const PLACEHOLDER_SUMMARIES = [
-  {
-    id: '1',
-    videoTitle: 'How Large Language Models Work — A Visual Intro to Transformers',
-    channelTitle: '3Blue1Brown',
-    thumbnailUrl: 'https://i.ytimg.com/vi/wjZofJX0v4M/hqdefault.jpg',
-    duration: 1620,
-    summary: 'This video provides a comprehensive visual explanation of how transformer-based large language models process and generate text, covering attention mechanisms, tokenization, and neural network fundamentals.',
-    createdAt: new Date(Date.now() - 3600000).toISOString(),
-  },
-  {
-    id: '2',
-    videoTitle: 'Building a Full-Stack App with React, Node.js & PostgreSQL',
-    channelTitle: 'Fireship',
-    thumbnailUrl: 'https://i.ytimg.com/vi/Oe421EPjeBE/hqdefault.jpg',
-    duration: 724,
-    summary: 'A speed-run tutorial covering React frontend setup, Node.js backend with Express, PostgreSQL database integration, and deployment strategies for modern web applications.',
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    id: '3',
-    videoTitle: 'The Future of AI in 2025 — What You Need to Know',
-    channelTitle: 'Two Minute Papers',
-    thumbnailUrl: 'https://i.ytimg.com/vi/yCPVm2N0K7Q/hqdefault.jpg',
-    duration: 485,
-    summary: 'An overview of emerging AI trends including multimodal models, AI agents, open-source breakthroughs, and the evolving landscape of artificial intelligence research and applications.',
-    createdAt: new Date(Date.now() - 172800000).toISOString(),
-  },
-];
+
 
 export default function HistoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // TODO: Replace with real GraphQL query in Milestone 11
-  const summaries = PLACEHOLDER_SUMMARIES;
+  const { data, loading, error } = useQuery(GET_SUMMARIES);
+  const [deleteSummary] = useMutation(DELETE_SUMMARY, {
+    refetchQueries: ['GetSummaries'],
+  });
+
+  const summaries = data?.summaries || [];
 
   const filteredSummaries = summaries.filter(
-    (s) =>
+    (s: any) =>
       s.videoTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.channelTitle.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
-    // TODO: Connect to DELETE_SUMMARY mutation in Milestone 11
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    setDeletingId(null);
+    try {
+      await deleteSummary({
+        variables: { id },
+      });
+    } catch (err) {
+      console.error('Failed to delete summary:', err);
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -92,15 +76,30 @@ export default function HistoryPage() {
           </div>
         </motion.div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mb-3" />
+            <p className="text-sm text-slate-400">Loading your history...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <p className="text-sm text-rose-400">Failed to load history: {error.message}</p>
+          </div>
+        )}
+
         {/* Summary List */}
-        {filteredSummaries.length > 0 ? (
+        {!loading && !error && filteredSummaries.length > 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
             className="space-y-4"
           >
-            {filteredSummaries.map((summary, i) => (
+            {filteredSummaries.map((summary: any, i: number) => (
               <motion.div
                 key={summary.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -115,7 +114,7 @@ export default function HistoryPage() {
               </motion.div>
             ))}
           </motion.div>
-        ) : (
+        ) : !loading && !error && (
           /* Empty State */
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -147,17 +146,6 @@ export default function HistoryPage() {
             )}
           </motion.div>
         )}
-
-        {/* Info badge */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-          className="flex items-center justify-center gap-2 mt-10 text-[11px] text-slate-600"
-        >
-          <FileText className="w-3.5 h-3.5" />
-          <span>Placeholder data shown — real summaries will appear after Milestone 11</span>
-        </motion.div>
       </div>
     </div>
   );
