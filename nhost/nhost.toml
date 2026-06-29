@@ -60,7 +60,12 @@ allowedUrls = [
   'http://localhost:5175/**',
   'http://localhost:5176',
   'http://localhost:5176/',
-  'http://localhost:5176/**'
+  'http://localhost:5176/**',
+  'https://youtube-summarizer-ai-nine.vercel.app',
+  'https://youtube-summarizer-ai-nine.vercel.app/',
+  'https://youtube-summarizer-ai-nine.vercel.app/**',
+  'https://*.vercel.app',
+  'https://*.vercel.app/**'
 ]
 
 [auth.signUp]
