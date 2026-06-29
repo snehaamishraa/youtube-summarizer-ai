@@ -36,36 +36,17 @@ export default async function handler(req: Request, res: Response) {
   }
 
   try {
-    // 1. Fetch transcript using youtube-transcript
-    let transcriptText = '';
-    try {
-      const transcriptObj = await YoutubeTranscript.fetchTranscript(videoId);
-      transcriptText = transcriptObj.map((item) => item.text).join(' ');
-    } catch (err: any) {
-      const msg = err?.message || '';
-      if (msg.includes('Could not find transcript') || msg.includes('disabled')) {
-        return res.status(400).json({ error: 'Transcripts/captions are disabled or unavailable for this video.' });
-      }
-      return res.status(400).json({ error: 'Failed to retrieve transcript. The video may be private, age-restricted, or invalid.' });
-    }
-
-    if (!transcriptText.trim()) {
-      return res.status(400).json({ error: 'Transcript is empty for this video.' });
-    }
-
-    // Truncate very long transcripts to protect limits (approx 10,000 words / 45,000 characters)
-    const truncatedTranscript = transcriptText.slice(0, 45000);
-
-    // 2. Fetch video page metadata
+    // 1. Fetch video page metadata and description
     let videoTitle = 'Unknown YouTube Video';
     let channelTitle = 'Unknown Channel';
     let duration = 0;
+    let videoDescription = '';
     const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
 
     try {
       const ytResponse = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Accept-Language': 'en-US,en;q=0.9',
         },
       });
@@ -74,15 +55,15 @@ export default async function handler(req: Request, res: Response) {
         const html = await ytResponse.text();
 
         // Title match
-        const titleMatch = html.match(/<meta\s+name="title"\s+content="([^"]+)"/i) || 
+        const titleMatch = html.match(/<meta\s+name="title"\s+content="([^"]*)"/i) || 
                            html.match(/<title>([^<]+)<\/title>/i);
         if (titleMatch) {
           videoTitle = titleMatch[1].replace(' - YouTube', '');
         }
 
         // Channel title match
-        const channelMatch = html.match(/<link\s+itemprop="name"\s+content="([^"]+)"/i) || 
-                             html.match(/"author"\s*:\s*"([^"]+)"/i);
+        const channelMatch = html.match(/<link\s+itemprop="name"\s+content="([^"]*)"/i) || 
+                             html.match(/"author"\s*:\s*"([^"]*)"/i);
         if (channelMatch) {
           channelTitle = channelMatch[1];
         }
@@ -92,6 +73,13 @@ export default async function handler(req: Request, res: Response) {
                               html.match(/"lengthSeconds"\s*:\s*"(\d+)"/i);
         if (durationMatch) {
           duration = Math.floor(parseInt(durationMatch[1], 10) / (durationMatch[0].includes('approxDurationMs') ? 1000 : 1));
+        }
+
+        // Description meta match
+        const descMatch = html.match(/<meta\s+name="description"\s+content="([^"]*)"/i) || 
+                          html.match(/<meta\s+property="og:description"\s+content="([^"]*)"/i);
+        if (descMatch) {
+          videoDescription = descMatch[1];
         }
 
         // Parse ytInitialPlayerResponse fallback
@@ -104,15 +92,39 @@ export default async function handler(req: Request, res: Response) {
               if (details.title && videoTitle === 'Unknown YouTube Video') videoTitle = details.title;
               if (details.author && channelTitle === 'Unknown Channel') channelTitle = details.author;
               if (details.lengthSeconds && !duration) duration = parseInt(details.lengthSeconds, 10);
+              if (details.shortDescription && !videoDescription) videoDescription = details.shortDescription;
             }
           } catch {
             // Ignore parse errors
           }
         }
       }
-    } catch {
+    } catch (e) {
       // If fetching page metadata fails, we still proceed with default values
     }
+
+    // 2. Fetch transcript using youtube-transcript (with silent failure on rate-limit/datacenter blocks)
+    let transcriptText = '';
+    try {
+      const transcriptObj = await YoutubeTranscript.fetchTranscript(videoId);
+      transcriptText = transcriptObj.map((item) => item.text).join(' ');
+    } catch (err: any) {
+      console.warn('Transcript fetch failed (likely blocked by YouTube datacenter IP security):', err.message);
+    }
+
+    let contentToSummarize = transcriptText.trim();
+    if (!contentToSummarize) {
+      if (videoDescription.trim()) {
+        contentToSummarize = `Video Description: ${videoDescription.trim()}`;
+      } else {
+        return res.status(400).json({ 
+          error: 'Transcripts are disabled or blocked by YouTube, and no video description could be retrieved. Please try another video.' 
+        });
+      }
+    }
+
+    // Truncate to protect context window limits
+    const truncatedTranscript = contentToSummarize.slice(0, 45000);
 
     // 3. Connect to OpenRouter API to generate summary (using free models only)
     const openRouterKey = process.env.OPENROUTER_API_KEY;
