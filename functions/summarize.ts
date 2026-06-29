@@ -127,7 +127,8 @@ export default async function handler(req: Request, res: Response) {
     const truncatedTranscript = contentToSummarize.slice(0, 45000);
 
     // 3. Connect to OpenRouter API to generate summary (using free models only)
-    const openRouterKey = process.env.OPENROUTER_API_KEY;
+    const rawKey = process.env.OPENROUTER_API_KEY || '';
+    const openRouterKey = rawKey.replace(/^['"]|['"]$/g, '').trim();
     if (!openRouterKey) {
       return res.status(500).json({ error: 'OpenRouter API key is not configured in Nhost secrets.' });
     }
