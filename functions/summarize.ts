@@ -218,7 +218,7 @@ Format the output in clean markdown.`,
     }
 
     // Save to PostgreSQL via GraphQL Mutation on the backend
-    const hasuraAdminSecret = process.env.HASURA_GRAPHQL_ADMIN_SECRET;
+    const hasuraAdminSecret = process.env.NHOST_ADMIN_SECRET;
     const hasuraUrl = `${process.env.NHOST_BACKEND_URL}/v1/graphql`;
 
     const graphqlMutation = `
