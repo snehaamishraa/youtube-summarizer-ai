@@ -24,8 +24,8 @@ export default async function handler(req: Request, res: Response) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { url } = req.body.input || {};
-  const sessionVariables = req.body.session_variables || {};
+  const { url } = req.body?.input || {};
+  const sessionVariables = req.body?.session_variables || {};
   const userId = sessionVariables['x-hasura-user-id'];
 
   if (!userId) {
@@ -219,7 +219,7 @@ Format the output in clean markdown.`,
 
     // Save to PostgreSQL via GraphQL Mutation on the backend
     const hasuraAdminSecret = process.env.NHOST_ADMIN_SECRET;
-    const hasuraUrl = `${process.env.NHOST_BACKEND_URL}/v1/graphql`;
+    const hasuraUrl = process.env.NHOST_GRAPHQL_URL || `${process.env.NHOST_BACKEND_URL}/v1/graphql`;
 
     const graphqlMutation = `
       mutation InsertSummary(
