@@ -51,3 +51,21 @@ export const DELETE_SUMMARY = gql`
     }
   }
 `;
+
+/**
+ * Summarize a YouTube video via Hasura Action mutation.
+ */
+export const SUMMARIZE_VIDEO = gql`
+  mutation SummarizeVideo($url: String!) {
+    summarizeVideo(url: $url) {
+      id
+      videoTitle
+      channelTitle
+      thumbnailUrl
+      duration
+      summary
+      modelUsed
+    }
+  }
+`;
+

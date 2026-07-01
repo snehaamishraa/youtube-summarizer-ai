@@ -24,15 +24,21 @@ export default async function handler(req: Request, res: Response) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { url } = req.body;
+  const { url } = req.body.input || {};
+  const sessionVariables = req.body.session_variables || {};
+  const userId = sessionVariables['x-hasura-user-id'];
+
+  if (!userId) {
+    return res.status(401).json({ message: 'Unauthorized: User session is required' });
+  }
 
   if (!url) {
-    return res.status(400).json({ error: 'YouTube URL is required' });
+    return res.status(400).json({ message: 'YouTube URL is required' });
   }
 
   const videoId = getYouTubeId(url);
   if (!videoId) {
-    return res.status(400).json({ error: 'Invalid YouTube URL' });
+    return res.status(400).json({ message: 'Invalid YouTube URL' });
   }
 
   try {
@@ -207,22 +213,100 @@ Format the output in clean markdown.`,
         : 'Too short / Empty';
       console.error(`AI Summary Generation Failed. Last Error: ${lastError} (Key debug: len=${keyLength}, mask=${maskedKey})`);
       return res.status(502).json({ 
-        error: 'The AI summarization service is temporarily busy or rate-limited. Please wait a moment and try again.' 
+        message: 'The AI summarization service is temporarily busy or rate-limited. Please wait a moment and try again.' 
       });
     }
 
+    // Save to PostgreSQL via GraphQL Mutation on the backend
+    const hasuraAdminSecret = process.env.HASURA_GRAPHQL_ADMIN_SECRET;
+    const hasuraUrl = `${process.env.NHOST_BACKEND_URL}/v1/graphql`;
+
+    const graphqlMutation = `
+      mutation InsertSummary(
+        $videoId: String!
+        $videoUrl: String!
+        $videoTitle: String!
+        $channelTitle: String!
+        $thumbnailUrl: String!
+        $duration: Int!
+        $summary: String!
+        $transcript: String
+      ) {
+        insertSummary(
+          object: {
+            videoId: $videoId
+            videoUrl: $videoUrl
+            videoTitle: $videoTitle
+            channelTitle: $channelTitle
+            thumbnailUrl: $thumbnailUrl
+            duration: $duration
+            summary: $summary
+            transcript: $transcript
+          }
+        ) {
+          id
+        }
+      }
+    `;
+
+    let savedSummaryId = '';
+
+    try {
+      const dbResponse = await fetch(hasuraUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-hasura-admin-secret': hasuraAdminSecret || '',
+          'x-hasura-role': 'user',
+          'x-hasura-user-id': userId,
+        },
+        body: JSON.stringify({
+          query: graphqlMutation,
+          variables: {
+            videoId,
+            videoUrl: url,
+            videoTitle,
+            channelTitle,
+            thumbnailUrl,
+            duration,
+            summary,
+            transcript: truncatedTranscript,
+          },
+        }),
+      });
+
+      if (!dbResponse.ok) {
+        const errorText = await dbResponse.text();
+        console.error('Failed to save summary to database:', errorText);
+        return res.status(500).json({ message: `Database save failed: HTTP ${dbResponse.status}` });
+      }
+
+      const dbData = await dbResponse.json();
+      if (dbData.errors) {
+        console.error('GraphQL errors saving summary:', dbData.errors);
+        return res.status(500).json({ message: `Database save failed: ${dbData.errors[0]?.message || 'GraphQL error'}` });
+      }
+
+      savedSummaryId = dbData.data?.insertSummary?.id;
+      if (!savedSummaryId) {
+        throw new Error('No ID returned from database insert');
+      }
+    } catch (dbErr: any) {
+      console.error('Error inserting summary into database:', dbErr.message);
+      return res.status(500).json({ message: `Database insert error: ${dbErr.message}` });
+    }
+
     return res.status(200).json({
-      success: true,
+      id: savedSummaryId,
       videoTitle,
       channelTitle,
       thumbnailUrl,
       duration,
       summary,
-      transcript: truncatedTranscript,
       modelUsed: getFriendlyModelName(successfulModel),
     });
   } catch (error: any) {
-    return res.status(500).json({ error: error.message || 'An error occurred during video processing.' });
+    return res.status(500).json({ message: error.message || 'An error occurred during video processing.' });
   }
 }
 

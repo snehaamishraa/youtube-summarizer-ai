@@ -1,6 +1,30 @@
-actions: []
+actions:
+  - name: summarizeVideo
+    definition:
+      kind: synchronous
+      handler: '{{NHOST_BACKEND_URL}}/v1/functions/summarize'
+      forward_client_headers: true
+    permissions:
+      - role: user
+      - role: me
 custom_types:
   enums: []
   input_objects: []
-  objects: []
+  objects:
+    - name: SummarizeVideoResponse
+      fields:
+        - name: id
+          type: String!
+        - name: videoTitle
+          type: String!
+        - name: channelTitle
+          type: String!
+        - name: thumbnailUrl
+          type: String!
+        - name: duration
+          type: Int!
+        - name: summary
+          type: String!
+        - name: modelUsed
+          type: String
   scalars: []

@@ -3,8 +3,7 @@ import { motion } from 'framer-motion';
 import { Sparkles, Zap, Shield, Clock } from 'lucide-react';
 import Summarizer from '../components/Summarizer';
 import { useMutation } from '@apollo/client';
-import { useNhostClient } from '@nhost/react';
-import { INSERT_SUMMARY } from '../graphql/mutations';
+import { SUMMARIZE_VIDEO } from '../graphql/mutations';
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
@@ -18,8 +17,7 @@ export default function Home() {
     summary: string;
   } | null>(null);
 
-  const nhost = useNhostClient();
-  const [insertSummary] = useMutation(INSERT_SUMMARY, {
+  const [summarizeVideo] = useMutation(SUMMARIZE_VIDEO, {
     refetchQueries: ['GetSummaries'],
   });
 
@@ -29,54 +27,22 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      const { res, error: fnError } = await nhost.functions.call<{
-        videoTitle: string;
-        channelTitle: string;
-        thumbnailUrl: string;
-        duration: number;
-        summary: string;
-        transcript?: string;
-        modelUsed?: string;
-      }>('summarize', { url });
+      const response = await summarizeVideo({
+        variables: { url },
+      });
 
-      if (fnError) {
-        const errMsg = fnError.message?.error || fnError.message || 'Failed to generate summary.';
-        setError(typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg));
-        return;
-      }
-
-      if (res?.data) {
-        const data = res.data;
-        
-        if (data.modelUsed) {
-          setModelName(data.modelUsed);
+      const actionData = response.data?.summarizeVideo;
+      if (actionData) {
+        if (actionData.modelUsed) {
+          setModelName(actionData.modelUsed);
         }
 
-        // Helper to extract YouTube video ID from URL
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|^shorts\/)([^#\&\?]*).*/;
-        const match = url.match(regExp);
-        const videoId = match && match[2].length === 11 ? match[2] : 'unknown';
-
-        // Save to PostgreSQL via GraphQL Mutation
-        await insertSummary({
-          variables: {
-            videoId,
-            videoUrl: url,
-            videoTitle: data.videoTitle,
-            channelTitle: data.channelTitle,
-            thumbnailUrl: data.thumbnailUrl,
-            duration: data.duration,
-            summary: data.summary,
-            transcript: data.transcript || '',
-          },
-        });
-
         setResult({
-          videoTitle: data.videoTitle,
-          channelTitle: data.channelTitle,
-          thumbnailUrl: data.thumbnailUrl,
-          duration: data.duration,
-          summary: data.summary,
+          videoTitle: actionData.videoTitle,
+          channelTitle: actionData.channelTitle,
+          thumbnailUrl: actionData.thumbnailUrl,
+          duration: actionData.duration,
+          summary: actionData.summary,
         });
       }
     } catch (err: any) {

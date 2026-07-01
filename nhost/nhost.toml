@@ -4,6 +4,10 @@
 name = 'OPENROUTER_API_KEY'
 value = '{{ secrets.OPENROUTER_API_KEY }}'
 
+[[global.environment]]
+name = 'HASURA_GRAPHQL_ADMIN_SECRET'
+value = '{{ secrets.HASURA_GRAPHQL_ADMIN_SECRET }}'
+
 
 [hasura]
 version = 'v2.48.10-ce'
@@ -107,7 +111,7 @@ enabled = false
 
 [auth.method.otp]
 [auth.method.otp.email]
-enabled = false
+enabled = true
 
 [auth.method.emailPassword]
 hibpEnabled = false

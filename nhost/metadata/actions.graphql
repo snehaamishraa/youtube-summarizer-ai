@@ -1,0 +1,15 @@
+type Mutation {
+  summarizeVideo (
+    url: String!
+  ): SummarizeVideoResponse
+}
+
+type SummarizeVideoResponse {
+  id: String!
+  videoTitle: String!
+  channelTitle: String!
+  thumbnailUrl: String!
+  duration: Int!
+  summary: String!
+  modelUsed: String
+}
