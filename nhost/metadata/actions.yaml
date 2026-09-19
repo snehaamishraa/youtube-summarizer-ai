@@ -1,4 +1,11 @@
 actions:
+  - name: fetchTranscript
+    definition:
+      kind: synchronous
+      handler: '{{NHOST_FUNCTIONS_URL}}/transcript'
+      forward_client_headers: true
+    permissions:
+      - role: user
   - name: summarizeVideo
     definition:
       kind: synchronous
@@ -10,6 +17,18 @@ custom_types:
   enums: []
   input_objects: []
   objects:
+    - name: FetchTranscriptResponse
+      fields:
+        - name: videoId
+          type: String!
+        - name: videoTitle
+          type: String!
+        - name: channelTitle
+          type: String!
+        - name: duration
+          type: Int!
+        - name: transcript
+          type: String!
     - name: SummarizeVideoResponse
       fields:
         - name: id

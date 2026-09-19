@@ -7,6 +7,7 @@ import { formatDuration } from '../lib/summary';
 interface SummarizerProps {
   onSummarize?: (url: string) => Promise<void>;
   isLoading?: boolean;
+  loadingText?: string;
   error?: string | null;
   result?: {
     videoTitle: string;
@@ -17,7 +18,13 @@ interface SummarizerProps {
   } | null;
 }
 
-export default function Summarizer({ onSummarize, isLoading = false, error = null, result = null }: SummarizerProps) {
+export default function Summarizer({
+  onSummarize,
+  isLoading = false,
+  loadingText = 'Summarizing...',
+  error = null,
+  result = null,
+}: SummarizerProps) {
   const [url, setUrl] = useState('');
   const [copied, setCopied] = useState(false);
 
@@ -79,7 +86,7 @@ export default function Summarizer({ onSummarize, isLoading = false, error = nul
             {isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Summarizing...
+                {loadingText}
               </>
             ) : (
               <>

@@ -53,11 +53,40 @@ export const DELETE_SUMMARY = gql`
 `;
 
 /**
- * Summarize a YouTube video via Hasura Action mutation.
+ * Step 1: get a YouTube video's title, channel and transcript via Hasura Action.
+ */
+export const FETCH_TRANSCRIPT = gql`
+  mutation FetchTranscript($url: String!) {
+    fetchTranscript(url: $url) {
+      videoId
+      videoTitle
+      channelTitle
+      duration
+      transcript
+    }
+  }
+`;
+
+/**
+ * Step 2: summarize the transcript from step 1 and save it, via Hasura Action.
  */
 export const SUMMARIZE_VIDEO = gql`
-  mutation SummarizeVideo($url: String!) {
-    summarizeVideo(url: $url) {
+  mutation SummarizeVideo(
+    $url: String!
+    $videoId: String!
+    $videoTitle: String!
+    $channelTitle: String!
+    $duration: Int!
+    $transcript: String!
+  ) {
+    summarizeVideo(
+      url: $url
+      videoId: $videoId
+      videoTitle: $videoTitle
+      channelTitle: $channelTitle
+      duration: $duration
+      transcript: $transcript
+    ) {
       id
       videoTitle
       channelTitle

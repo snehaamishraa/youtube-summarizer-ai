@@ -1,7 +1,26 @@
 type Mutation {
+  fetchTranscript (
+    url: String!
+  ): FetchTranscriptResponse
+}
+
+type Mutation {
   summarizeVideo (
     url: String!
+    videoId: String!
+    videoTitle: String!
+    channelTitle: String!
+    duration: Int!
+    transcript: String!
   ): SummarizeVideoResponse
+}
+
+type FetchTranscriptResponse {
+  videoId: String!
+  videoTitle: String!
+  channelTitle: String!
+  duration: Int!
+  transcript: String!
 }
 
 type SummarizeVideoResponse {

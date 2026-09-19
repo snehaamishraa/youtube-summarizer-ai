@@ -3,10 +3,11 @@ import { motion } from 'framer-motion';
 import { Sparkles, Zap, Shield, Clock } from 'lucide-react';
 import Summarizer from '../components/Summarizer';
 import { useMutation } from '@apollo/client';
-import { SUMMARIZE_VIDEO } from '../graphql/mutations';
+import { FETCH_TRANSCRIPT, SUMMARIZE_VIDEO } from '../graphql/mutations';
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [modelName, setModelName] = useState('Nex N2.5 Mini');
   const [result, setResult] = useState<{
@@ -17,18 +18,37 @@ export default function Home() {
     summary: string;
   } | null>(null);
 
+  const [fetchTranscript] = useMutation(FETCH_TRANSCRIPT);
   const [summarizeVideo] = useMutation(SUMMARIZE_VIDEO, {
     refetchQueries: ['GetSummaries'],
   });
 
+  // Two separate backend calls, so each one stays inside Nhost's 10-second function limit
   const handleSummarize = async (url: string) => {
     setError(null);
     setResult(null);
     setIsLoading(true);
 
     try {
-      const response = await summarizeVideo({
+      setLoadingText('Fetching transcript...');
+      const transcriptResponse = await fetchTranscript({
         variables: { url },
+      });
+      const video = transcriptResponse.data?.fetchTranscript;
+      if (!video) {
+        throw new Error('Could not get the transcript for this video.');
+      }
+
+      setLoadingText('Summarizing...');
+      const response = await summarizeVideo({
+        variables: {
+          url,
+          videoId: video.videoId,
+          videoTitle: video.videoTitle,
+          channelTitle: video.channelTitle,
+          duration: video.duration,
+          transcript: video.transcript,
+        },
       });
 
       const actionData = response.data?.summarizeVideo;
@@ -120,6 +140,7 @@ export default function Home() {
         <Summarizer
           onSummarize={handleSummarize}
           isLoading={isLoading}
+          loadingText={loadingText}
           error={error}
           result={result}
         />
