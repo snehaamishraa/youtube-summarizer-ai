@@ -4,6 +4,10 @@
 name = 'OPENROUTER_API_KEY'
 value = '{{ secrets.OPENROUTER_API_KEY }}'
 
+[[global.environment]]
+name = 'SUPADATA_API_KEY'
+value = '{{ secrets.SUPADATA_API_KEY }}'
+
 
 [hasura]
 version = 'v2.48.10-ce'

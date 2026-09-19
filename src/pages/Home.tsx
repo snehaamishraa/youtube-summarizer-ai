@@ -8,7 +8,7 @@ import { SUMMARIZE_VIDEO } from '../graphql/mutations';
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [modelName, setModelName] = useState('Meta Llama 3.1');
+  const [modelName, setModelName] = useState('Nex N2.5 Mini');
   const [result, setResult] = useState<{
     videoTitle: string;
     channelTitle: string;

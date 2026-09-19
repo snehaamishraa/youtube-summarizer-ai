@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link2, Sparkles, Loader2, AlertCircle, FileText, List, Lightbulb, Copy, Check } from 'lucide-react';
+import { Link2, Sparkles, Loader2, AlertCircle, FileText, Copy, Check } from 'lucide-react';
+import SummaryContent from './SummaryContent';
+import { formatDuration } from '../lib/summary';
 
 interface SummarizerProps {
   onSummarize?: (url: string) => Promise<void>;
@@ -32,14 +34,6 @@ export default function Summarizer({ onSummarize, isLoading = false, error = nul
     navigator.clipboard.writeText(result.summary);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const formatDuration = (seconds: number): string => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -152,9 +146,11 @@ export default function Summarizer({ onSummarize, isLoading = false, error = nul
                 {result.videoTitle}
               </h3>
               <p className="text-sm text-slate-400 mb-3">{result.channelTitle}</p>
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-800/60 border border-slate-700/50 rounded-lg text-xs text-slate-300 font-mono">
-                {formatDuration(result.duration)}
-              </span>
+              {result.duration > 0 && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-800/60 border border-slate-700/50 rounded-lg text-xs text-slate-300 font-mono">
+                  {formatDuration(result.duration)}
+                </span>
+              )}
             </div>
           </div>
 
@@ -183,28 +179,7 @@ export default function Summarizer({ onSummarize, isLoading = false, error = nul
               </button>
             </div>
 
-            {/* Parse summary sections */}
-            <div className="text-sm text-slate-300 leading-relaxed space-y-4">
-              {result.summary.split('\n\n').map((block, i) => {
-                if (block.startsWith('•') || block.startsWith('-') || block.startsWith('*')) {
-                  return (
-                    <div key={i} className="flex items-start gap-2.5 pl-2">
-                      <List className="w-4 h-4 text-purple-400 mt-0.5 flex-shrink-0" />
-                      <span>{block.replace(/^[•\-*]\s*/, '')}</span>
-                    </div>
-                  );
-                }
-                if (block.toLowerCase().includes('takeaway') || block.toLowerCase().includes('key')) {
-                  return (
-                    <div key={i} className="flex items-start gap-2.5 p-3 bg-amber-500/5 border border-amber-500/10 rounded-xl">
-                      <Lightbulb className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-                      <span className="text-amber-200/90">{block}</span>
-                    </div>
-                  );
-                }
-                return <p key={i}>{block}</p>;
-              })}
-            </div>
+            <SummaryContent summary={result.summary} />
           </div>
         </motion.div>
       )}

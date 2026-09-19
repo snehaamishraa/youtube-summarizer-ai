@@ -1,8 +1,11 @@
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { Trash2, Clock, ExternalLink } from 'lucide-react';
+import { formatDuration, parseSummary } from '../lib/summary';
 
 interface SummaryCardProps {
   id: string;
+  videoUrl: string;
   videoTitle: string;
   channelTitle: string;
   thumbnailUrl: string;
@@ -15,6 +18,7 @@ interface SummaryCardProps {
 
 export default function SummaryCard({
   id,
+  videoUrl,
   videoTitle,
   channelTitle,
   thumbnailUrl,
@@ -24,14 +28,6 @@ export default function SummaryCard({
   onDelete,
   isDeleting = false,
 }: SummaryCardProps) {
-  const formatDuration = (seconds: number): string => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
-
   const formatDate = (dateStr: string): string => {
     const date = new Date(dateStr);
     const now = new Date();
@@ -47,6 +43,9 @@ export default function SummaryCard({
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  const detailPath = `/summary/${id}`;
+  const preview = parseSummary(summary).overview.join(' ') || summary;
+
   return (
     <motion.div
       layout
@@ -58,37 +57,44 @@ export default function SummaryCard({
     >
       <div className="flex flex-col sm:flex-row gap-4 p-5">
         {/* Thumbnail */}
-        <div className="relative flex-shrink-0">
+        <Link to={detailPath} className="relative flex-shrink-0">
           <img
             src={thumbnailUrl}
             alt={videoTitle}
             className="w-full sm:w-40 h-24 object-cover rounded-xl border border-slate-800/50"
           />
-          <span className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/80 rounded text-[10px] font-mono text-white font-medium">
-            {formatDuration(duration)}
-          </span>
-        </div>
+          {duration > 0 && (
+            <span className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/80 rounded text-[10px] font-mono text-white font-medium">
+              {formatDuration(duration)}
+            </span>
+          )}
+        </Link>
 
         {/* Content */}
         <div className="flex-1 min-w-0 flex flex-col">
-          <h3 className="text-sm font-semibold text-white leading-snug line-clamp-2 mb-1 group-hover:text-indigo-200 transition-colors">
-            {videoTitle}
-          </h3>
-          <p className="text-xs text-slate-400 mb-2">{channelTitle}</p>
-          <p className="text-xs text-slate-400 leading-relaxed line-clamp-2 flex-1">
-            {summary}
-          </p>
+          <Link to={detailPath} className="flex-1">
+            <h3 className="text-sm font-semibold text-white leading-snug line-clamp-2 mb-1 group-hover:text-indigo-200 transition-colors">
+              {videoTitle}
+            </h3>
+            <p className="text-xs text-slate-400 mb-2">{channelTitle}</p>
+            <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">{preview}</p>
+          </Link>
 
           {/* Footer */}
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-800/40">
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-              <Clock className="w-3 h-3" />
-              {formatDate(createdAt)}
+            <div className="flex items-center gap-3 text-[11px] text-slate-500">
+              <span className="flex items-center gap-1.5">
+                <Clock className="w-3 h-3" />
+                {formatDate(createdAt)}
+              </span>
+              <Link to={detailPath} className="font-medium text-indigo-400 hover:text-indigo-300 transition-colors">
+                Read summary →
+              </Link>
             </div>
 
             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               <a
-                href={`https://youtube.com/watch?v=${id}`}
+                href={videoUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800/60 rounded-lg transition-all"

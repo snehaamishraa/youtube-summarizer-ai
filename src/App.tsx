@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Home from './pages/Home';
 import HistoryPage from './pages/History';
+import SummaryDetail from './pages/SummaryDetail';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 
@@ -50,6 +51,18 @@ function App() {
           } 
         />
         
+        {/* Protected Summary Detail Route (opened from History) */}
+        <Route
+          path="/summary/:id"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <SummaryDetail />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
         {/* Fallback Route redirects to Dashboard (which will auto-guard if unauthenticated) */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
